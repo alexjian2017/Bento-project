@@ -1,17 +1,40 @@
-<!doctype html>
-<html>
-  <head>
-    <title>訂餐紀錄系統</title>
-    {% include 'boostramp.html' %}
-  </head>
-  <body>
-    {% include 'navbar.html'%}
-    <img class='img-fluid' style="width:100%;height:200px;object-fit:cover;" src='/static/lunch1.jpg' height='320'>
-    <div class="container" style="max-width:960px;margin: 0 auto;"> 
-      <h1 class="text-center mt-4 mb-4">訂餐紀錄系統</h1>
-      
-      {% include 'google_sheet_form.html'%}
-      {% include 'footer.html' %}
-    </div> 
-  </body>
-</html>
+{% extends 'base.html' %}
+{% block title %}Home{% endblock title %}
+{% block content %}
+<h1 class="text-center mt-4 mb-4">訂餐紀錄系統</h1>
+
+<div class='row'>
+  <div style="width:5%"></div>
+  
+  <div class='border' style="width:42.5%" >
+      <h4 class="text-center mt-2">輸入資料</h4>
+      <a href="/user/input"><img class="rounded mx-auto d-block mb-2"  style='width:45%'  src="/static/home1.png"></a>
+  </div>
+  
+  <div style="width:5%"></div>
+  
+  <div class='border' style="width:42.5%">
+      <h4 class="text-center mt-2">查詢/繳費</h4>
+      <a href="/user/paid"><img class="rounded mx-auto d-block mb-2" style="width:45%" src="/static/home3.png"></a>
+  </div>  
+</div>
+<p></p>
+
+<div class='row'>
+  <div style="width:5%"></div>
+  
+  <div class='border' style="width:42.5%" >
+      <h4 class="text-center mt-2">設定信箱</h4>
+      <a href="/user/set_email"><img class="rounded mx-auto d-block mb-2"  style='width:45%'  src="/static/home2.png"></a>
+  </div>
+  
+  <div style="width:5%"></div>
+  
+  <div class='border' style="width:42.5%">
+      <h4 class="text-center mt-2">發送催繳通知</h4>
+      <a href="/user/input"><img class="rounded mx-auto d-block mb-2" style="width:45%" src="/static/home4.png"></a>
+  </div>  
+</div>
+
+
+{% endblock content %}
