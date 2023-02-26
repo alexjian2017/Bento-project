@@ -48,4 +48,30 @@ def send_unpaid_mail(df,user_email:dict):
   shutil.rmtree("temp")
   return do_not_have_email
         
-      
+def send_order_mail(df,date:str,user_email:dict):
+  do_not_have_email = []
+  with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+    server.login(username, password)
+    for name, mail in user_email.items():
+      if not mail:
+        do_not_have_email.append(name)
+      else:
+        temp = df.loc[df['name'] == name]
+        print(temp)
+        msg = EmailMessage()
+        msg['From'] = username # 寄件人
+        msg['To'] = mail # 收件人
+        msg['Subject'] = f'{date}訂單資訊' # 標題
+  
+        ## 純文字內容
+        text = f"Hi {name[0].upper()+name[1:]},\n感謝你訂購\n"
+        sum = 0
+        for i in range(len(temp.index)):
+          text += f"{temp.iloc[i,1]}  {temp.iloc[i,2]} 元\n"
+          sum += temp.iloc[i,2]
+          text += f'總計 {sum} 元，麻煩確認。\n'
+          print(text)
+          msg.set_content(text)
+        server.send_message(msg)
+  return do_not_have_email
+        
