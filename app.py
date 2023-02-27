@@ -29,15 +29,13 @@ def user_input_google_sheet():
     return "請打開google表單權限",404
   df.rename(columns = {'姓名':'name','餐點':'content','價格':'price','繳費':'paid'}, inplace = True)
   df = df[df['name'].notna()&df['price'].notna()&df['paid'].notna()] 
-  print(df)
   df = df[['name','content','price','paid']]
-  print(df)
-  #if sheet_to_user_db(df,data['date'],data['buyer']):
-  if data['need_email']:
-    user_email = search_email_from_db(df['name'].unique())
-    do_not_have_email = send_order_mail(df,data['date'],user_email)
-    if do_not_have_email:    
-      return "成功輸入資料，但是"+", ".join(do_not_have_email)+"尚未設定email" 
+  if sheet_to_user_db(df,data['date'],data['buyer']):
+    if data['need_email']:
+      user_email = search_email_from_db(df['name'].unique())
+      do_not_have_email = send_order_mail(df,data['date'],user_email)
+      if do_not_have_email:    
+        return "成功輸入資料，但是"+", ".join(do_not_have_email)+"尚未設定email" 
     
     return "成功輸入資料"
   return 'Oops, something goes wrong'
@@ -79,12 +77,9 @@ def paid():
 
 @app.route("/user/unpaid_email")
 def unpaid_email():
-  t1=time.time()
   df = search_unpaid_from_db('tisa')
   user_email = search_email_from_db(df['name'].unique())
   do_not_have_email = send_unpaid_mail(df, user_email)
-  t2=time.time()
-  print(f"總共{t2-t1}秒")
   if do_not_have_email:    
     return ", ".join(do_not_have_email)+"尚未設定email"  
   return "寄送催繳通知成功"

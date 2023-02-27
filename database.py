@@ -58,7 +58,6 @@ def search_payment_from_db(name:str,buyer:str):
       
       return 1
     except:
-      print('error')
       return 0
 def search_unpaid_from_db(buyer:str):
   with engine.connect() as conn:
