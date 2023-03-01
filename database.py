@@ -15,13 +15,17 @@ engine = create_engine(
 
 def sheet_to_user_db(df,date:str,buyer:str):  
   
-  df['buyer']=buyer.strip().lower()
-  df['u_date']=date
-  Dtype ={'u_date':DATE,'name':VARCHAR(200),'content':VARCHAR(1000),'price':INT,'buyer':VARCHAR(200),'paid':BOOLEAN}
+  # df['buyer']=buyer.strip().lower()
+  # df['u_date']=date
+  # Dtype ={'u_date':DATE,'name':VARCHAR(200),'content':VARCHAR(1000),'price':INT,'buyer':VARCHAR(200),'paid':BOOLEAN}
+  buyer = buyer.strip().lower()
 
   try:
     with engine.connect() as conn: 
-      df.to_sql('user_data',conn,if_exists='append',index=False,chunksize=1000,dtype = Dtype)
+      for i in range(len(df.index)):
+        paid = 1 if df.iloc[i,3] else 0
+        conn.execute(text(f"insert into user_data(name,content,price,paid,buyer,u_date) values('{df.iloc[i,0]}','{df.iloc[i,1]}','{df.iloc[i,2]}','{paid}','{buyer}','{date}');"))
+      # df.to_sql('user_data',conn,if_exists='append',index=False,chunksize=1000,dtype = Dtype)
     return 1
   except pymysql.MySQLError as err:
     print(type(err), err)
@@ -62,8 +66,13 @@ def search_payment_from_db(name:str,buyer:str):
 def search_unpaid_from_db(buyer:str):
   with engine.connect() as conn:
     query= f"select u_date,name,content,price,buyer,paid from user_data where buyer='{buyer}' and paid ='0' order by name, u_date;"
-    df = pd.read_sql(text(query), conn)
-    
+    #df = pd.read_sql(text(query), conn)
+    rows = []
+    result = conn.execute(text(query))
+    for row in result:
+      rows.append(row._asdict())
+    df = pd.DataFrame(rows)
+    print(df)
   return df
 def search_email_from_db(names):
   user_email = {}
@@ -77,7 +86,6 @@ def search_email_from_db(names):
         user_email[name] = rowdata['email']
       if name not in user_email:
         user_email[name] = None
-  print('user_email:',user_email)
   return user_email
   
 
