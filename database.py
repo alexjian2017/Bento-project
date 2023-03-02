@@ -13,18 +13,17 @@ engine = create_engine(
     }
   })
 
-def sheet_to_user_db(df,date:str,buyer:str):  
+def sheet_to_user_db(df):  
   
   # df['buyer']=buyer.strip().lower()
   # df['u_date']=date
   # Dtype ={'u_date':DATE,'name':VARCHAR(200),'content':VARCHAR(1000),'price':INT,'buyer':VARCHAR(200),'paid':BOOLEAN}
-  buyer = buyer.strip().lower()
 
   try:
     with engine.connect() as conn: 
       for i in range(len(df.index)):
         paid = 1 if df.iloc[i,3] else 0
-        conn.execute(text(f"insert into user_data(name,content,price,paid,buyer,u_date) values('{df.iloc[i,0]}','{df.iloc[i,1]}','{df.iloc[i,2]}','{paid}','{buyer}','{date}');"))
+        conn.execute(text(f"insert into user_data(name,content,price,paid,buyer,u_date) values('{df.iloc[i,0]}','{df.iloc[i,1]}','{df.iloc[i,2]}','{paid}','{df.iloc[i,4]}','{df.iloc[i,5]}');"))
       # df.to_sql('user_data',conn,if_exists='append',index=False,chunksize=1000,dtype = Dtype)
     return 1
   except pymysql.MySQLError as err:
@@ -72,7 +71,20 @@ def search_unpaid_from_db(buyer:str):
     for row in result:
       rows.append(row._asdict())
     df = pd.DataFrame(rows)
-    print(df)
+  return df
+def search_from_db(name:str,buyer:str,start_date:str,end_date:str,paid:str):
+  with engine.connect() as conn:
+    query= f"select u_date,name,content,price,buyer,paid from user_data where buyer='{buyer}' "
+    query += f"and paid='{1 if paid=='y' else 0}'" if paid in "yn" else "" 
+    query += f"and name='{name}'" if name else ""
+    query += f"and u_date>='{start_date}'" if start_date else ""
+    query += f"and u_date<='{end_date}'" if end_date else ""
+    query +=" order by name, u_date;"
+    rows = []
+    result = conn.execute(text(query))
+    for row in result:
+      rows.append(row._asdict())
+    df = pd.DataFrame(rows)
   return df
 def search_email_from_db(names):
   user_email = {}

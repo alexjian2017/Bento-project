@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request,jsonify
-from database import sheet_to_user_db, email_to_db, update_paid_to_db, search_payment_from_db, search_email_from_db, search_unpaid_from_db
+from database import sheet_to_user_db, email_to_db, update_paid_to_db, search_payment_from_db, search_email_from_db, search_unpaid_from_db, search_from_db
 from send_email import send_unpaid_mail, send_order_mail
 
 import pandas as pd
@@ -17,63 +17,103 @@ def google_sheet():
 @app.route("/user/input/result", methods=["POST"])
 def user_input_google_sheet():
   data= request.form
+  content = {}
   sheet_id = data['google_sheet_url'].split('/')[5]
   sheet_name = data['google_sheet_name']
-  if len(sheet_id)!=44:
-    return "請確認你輸入google_sheet網址的正確性",404  
+  if len(sheet_id)!=44:    
+    content['error']= "請確認你輸入google_sheet網址的正確性" 
+    return render_template('success.html',content=content)
   url = f'https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}' 
 
   try:
     df = pd.read_csv(url)
   except pd.errors.ParserError:
-    return "請打開google表單權限",404
+    content['error']= "請打開google表單權限"
+    return render_template('success.html',content=content)
   df.rename(columns = {'姓名':'name','餐點':'content','價格':'price','繳費':'paid'}, inplace = True)
   df = df[df['name'].notna()&df['price'].notna()&df['paid'].notna()] 
   df = df[['name','content','price','paid']]
-  if sheet_to_user_db(df,data['date'],data['buyer']):
-    if data['need_email']:
+  
+  df['buyer']=data['buyer']
+  df['date']=data['date']
+  if sheet_to_user_db(df):
+    content['success'] = "成功輸入資料"
+    if 'need_email' in data:
       user_email = search_email_from_db(df['name'].unique())
       do_not_have_email = send_order_mail(df,data['date'],user_email)
-      if do_not_have_email:    
-        return "成功輸入資料，但是"+", ".join(do_not_have_email)+"尚未設定email" 
-    
-    return "成功輸入資料"
-  return 'Oops, something goes wrong'
+      content['error'] = "但是 "+", ".join(do_not_have_email)+" 尚未設定email" 
+
+    content['df'] = df
+    content['rows'] =  [x for x in range(len(df.index))]
+    content['columns'] =  [x for x in range(len(df.columns))]
+  else:  
+    content['error']= "GG，好像有甚麼東西發生錯誤了，請檢查輸入資料"
+  return render_template('success.html',content=content)
   
 
 @app.route("/user/set_email", methods=["GET","POST"])
 def set_email():
   if request.method == 'POST':
     data= request.form
-    result = email_to_db(data['name'].strip().lower(),data['email'].strip())
+
+    df = pd.DataFrame(data.to_dict(flat=False))
+
+    content = {}
+    name = data['name'].strip().lower()
+    email = data['email'].strip()
+    result = email_to_db(name,email)
+    content['df'] = df
+    content['rows'] =  [x for x in range(len(df.index))]
+    content['columns'] =  [x for x in range(len(df.columns))]
     if result == 1:
-      return "添加成功"
+      content['success'] = "添加成功"
     elif result == 2:
-      return "修改成功"
-    return 'Oops, something go wrong'
+      content['success'] = "修改成功"
+    else:
+      content['error']= "GG，好像有甚麼東西發生錯誤了，請檢查輸入資料"
+    return render_template('success.html',content=content)
     
   return render_template('set_email.html')
-   
+
+@app.route("/user/search", methods=["GET","POST"])
+def search():
+  content = {}
+  if request.method == 'POST':
+    data= request.form
+    content['name']=data['name']
+    content['buyer']=data['buyer']
+    content['start_date']=data['start_date']
+    content['end_date']=data['end_date']
+    content['paid']=data['paid']
+    try:
+      df = search_from_db(data['name'].strip(),data['buyer'].strip(),data['start_date'],data['end_date'],data['paid'].strip().lower())
+    except Exception as err:
+      content['error']= f"GG，好像有甚麼東西發生錯誤了\n{err}"
+      return render_template('success.html',content=content)
+    content['df'] = df
+    content['rows'] =  [x for x in range(len(df.index))]
+    content['columns'] =  [x for x in range(len(df.columns))]
+  return render_template('search.html',content=content)
   
 @app.route("/user/paid", methods=["GET","POST"])
 def paid():
-  dic = {}
+  content = {}
   if request.method == 'POST':
     data= request.form
-    dic['name']=data['name']
-    dic['buyer']=data['buyer']
+    content['name']=data['name']
+    content['buyer']=data['buyer']
     if "search" in data:
       result = search_payment_from_db(data['name'].strip(),data['buyer'].strip())
       search_price = result['sum(price)']
       if search_price:        
-        dic['search_price'] = int(search_price)
+        content['search_price'] = int(search_price)
       else:
-        dic['search_price'] = 0
+        content['search_price'] = 0
     else:
       if update_paid_to_db(data['name'],data['buyer']):
         return "繳費成功"
       return 'Oops, something go wrong' 
-  return render_template('paid.html',dic=dic)
+  return render_template('paid.html',content=content)
 
 @app.route("/user/unpaid_email")
 def unpaid_email():

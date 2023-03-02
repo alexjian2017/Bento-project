@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}訂餐紀錄系統{% endblock title %}
+{% block front_content %}
+  <img class='img-fluid' style="width:100%;height:200px;object-fit:cover;" src='/static/lunch1.jpg' >
+{% endblock front_content %}
+{% block contents %}
+  {% if 'success' in content %}
+    <h2 class='text-center mt-4 mb-4'> {{content.success}} </h2>
+    <h4 class='text-center mt-4 mb-4'> {{content.error}} </h4>
+    <h5 > 以下是輸入的資料內容 </h5>
+    <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        {% for column in content.df.columns %}
+        <th scope="col">{{column}}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+  
+    {% for row in content.rows %}
+    
+    <tbody>
+      <tr>
+        <th scope="row">{{row+1}}</th>
+        {% for col in content.columns %}
+        <td>{{content.df.iloc[row,col]}}</td>
+        {% endfor %}
+    </tbody>
+    {% endfor %}
+    </table>
+  {% else %}
+  <h1 class='text-center mt-4 mb-4'> 錯誤 </h1>
+  <h4 class='text-center mt-4 mb-4'> {{content.error}} </h4>
+  {% endif %}
+
+
+{% endblock contents %}
+
