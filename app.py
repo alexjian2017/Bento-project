@@ -1,5 +1,5 @@
-from flask import Flask, render_template, request,jsonify
-from database import sheet_to_user_db, email_to_db, update_paid_to_db, search_payment_from_db, search_email_from_db, search_unpaid_from_db, search_from_db
+from flask import Flask, render_template, request, jsonify
+from database import sheet_to_user_db, email_to_db, update_paid_to_db, search_email_from_db, search_from_db
 from send_email import send_unpaid_mail, send_order_mail
 
 import pandas as pd
@@ -24,7 +24,6 @@ def user_input_google_sheet():
     content['error']= "請確認你輸入google_sheet網址的正確性" 
     return render_template('success.html',content=content)
   url = f'https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}' 
-
   try:
     df = pd.read_csv(url)
   except pd.errors.ParserError:
@@ -32,8 +31,7 @@ def user_input_google_sheet():
     return render_template('success.html',content=content)
   df.rename(columns = {'姓名':'name','餐點':'content','價格':'price','繳費':'paid'}, inplace = True)
   df = df[df['name'].notna()&df['price'].notna()&df['paid'].notna()] 
-  df = df[['name','content','price','paid']]
-  
+  df = df[['name','content','price','paid']]  
   df['buyer']=data['buyer']
   df['date']=data['date']
   if sheet_to_user_db(df):
@@ -55,10 +53,8 @@ def user_input_google_sheet():
 def set_email():
   if request.method == 'POST':
     data= request.form
-
-    df = pd.DataFrame(data.to_dict(flat=False))
-
     content = {}
+    df = pd.DataFrame(data.to_dict(flat=False))
     name = data['name'].strip().lower()
     email = data['email'].strip()
     result = email_to_db(name,email)
@@ -100,29 +96,39 @@ def paid():
   content = {}
   if request.method == 'POST':
     data= request.form
-    content['name']=data['name']
-    content['buyer']=data['buyer']
+    content['name']=data['name'].strip()
+    content['buyer']=data['buyer'].strip()
     if "search" in data:
-      result = search_payment_from_db(data['name'].strip(),data['buyer'].strip())
-      search_price = result['sum(price)']
-      if search_price:        
-        content['search_price'] = int(search_price)
-      else:
-        content['search_price'] = 0
+      try:
+        df = search_from_db(content['name'],content['buyer'],None,None,'n')
+      except Exception as err:
+        content['error']= f"GG，好像有甚麼東西發生錯誤了\n{err}"
+        return render_template('success.html',content=content)
+      content['df'] = df
+      content['rows'] =  [x for x in range(len(df.index))]
+      content['columns'] =  [x for x in range(len(df.columns))]
+      content['sum'] = df['price'].sum() if len(df.index) else 0
     else:
-      if update_paid_to_db(data['name'],data['buyer']):
-        return "繳費成功"
-      return 'Oops, something go wrong' 
+      if update_paid_to_db(content['name'],content['buyer']):
+        content['error']= f"{content['name']} 繳費成功" 
+      else:
+        content['error']= "GG，好像有甚麼東西發生錯誤了"
+      return render_template('success.html',content=content)
   return render_template('paid.html',content=content)
 
 @app.route("/user/unpaid_email")
 def unpaid_email():
-  df = search_unpaid_from_db('tisa')
-  user_email = search_email_from_db(df['name'].unique())
-  do_not_have_email = send_unpaid_mail(df, user_email)
-  if do_not_have_email:    
-    return ", ".join(do_not_have_email)+"尚未設定email"  
-  return "寄送催繳通知成功"
+  content = {}
+  try:
+    df = search_unpaid_from_db('tisa')
+    user_email = search_email_from_db(df['name'].unique())
+    do_not_have_email = send_unpaid_mail(df, user_email)
+    content['error']= "寄送催繳通知成功"
+    if do_not_have_email:    
+      content['error'] += "，\n但是"+", ".join(do_not_have_email)+"尚未設定email"  
+  except Exception as err:
+      content['error']= f"GG，好像有甚麼東西發生錯誤了\n{err}"
+  return render_template('success.html',content=content)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0',debug = True)

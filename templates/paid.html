@@ -13,32 +13,56 @@
       <label >繳款人</label><br>
       <input required type='text' name='name' value={{content.name}}>
     </div>
-    <div class='mb-4'>
+    <div class='mb-2'>
       <label>收款人</label><br>
       <input required type='text' name='buyer' value={{content.buyer}}>
     </div>
-    {% if 'search_price' in content %}
-    <p style="text-align: center;"> 總計 {{content.search_price}} 元</p>
-    <div style="text-align: center;" class="mt-2">
+    {% if 'sum' in content %}
+    <p style="text-align: center;"> 總計 {{content.sum}} 元</p>
+    <div style="text-align: center;" class="mt-4">
       <input type='submit' name="search" value='查詢' class="button">
       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
       <input type='submit' name="paid" value='繳費' class="button">
     </div>
     {% else %}
-    <div style="text-align: center;" class="mt-2 mb-2">
+    <div style="text-align: center;" class="mt-4 mb-2">
       <input type='submit' name="search" value='查詢' class="button">
       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
       <input type='reset' value='重置' >
-    </div>
+    </div>    
+    {% endif %}
     <div style="text-align: center;" class="mt-2 ">
       <form>
-        <input type="button" onclick="window.location.href='/user/unpaid_email';" value="發送催繳通知" />
-      </form>
-      
+        <input type="button" onclick="window.location.href='/user/unpaid_email';" value="發送催繳通知">
+      </form>      
     </div>
-    {% endif %}
-    
   </form>
+  {% if 'df' in content %}
+    {% if content.rows %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          {% for column in content.df.columns %}
+          <th scope="col">{{column}}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+    
+      {% for row in content.rows %}
+      
+      <tbody>
+        <tr>
+          <th scope="row">{{row+1}}</th>
+          {% for col in content.columns %}
+          <td>{{content.df.iloc[row,col]}}</td>
+          {% endfor %}
+      </tbody>
+      {% endfor %}
+    </table>
+    {% else %} <div class='mt-4' style='text-align: center;' >目前費用都已經繳清了喔，感謝你的支持</div>
+    {% endif %}
+  {% endif %}
 
   
 {% endblock contents %}

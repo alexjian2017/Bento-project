@@ -52,13 +52,11 @@ def search_payment_from_db(name:str,buyer:str):
   with engine.connect() as conn:
     try:
       query = f"select sum(price) from user_data where name='{name}' and buyer='{buyer}' and paid ='0';"
-      result = conn.execute(text(query))
-      
+      result = conn.execute(text(query))      
       if not result:
         return None
       for row in result:
-        return row._asdict()
-      
+        return row._asdict()      
       return 1
     except:
       return 0
@@ -79,7 +77,7 @@ def search_from_db(name:str,buyer:str,start_date:str,end_date:str,paid:str):
     query += f"and name='{name}'" if name else ""
     query += f"and u_date>='{start_date}'" if start_date else ""
     query += f"and u_date<='{end_date}'" if end_date else ""
-    query +=" order by name, u_date;"
+    query +=" order by u_date,name;"
     rows = []
     result = conn.execute(text(query))
     for row in result:
